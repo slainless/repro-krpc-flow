@@ -24,27 +24,19 @@ fun main() {
 class MyRpcImpl: MyRpc {
     override fun myFunction(data: Flow<ByteArray>) = flow {
         emit("OK, now delay 5s. Client should close the connection...")
-        println("First data: ${data.first().decodeToString()}")
-        delay(5.seconds)
-        println("Delay completed, listening for second...")
-
         try {
-            val value = data
-                .catch { e -> println(e.message); throw e }
-                .first().decodeToString()
-
-            println("Second data: $value")
+            data
+                .catch {
+                    println("Catch: ${it.message}")
+                    throw it
+                }
+                .collect {
+                    println("Data: ${it.decodeToString()}")
+                    delay(5.seconds)
+                }
+            println("Collector done...")
         } catch (e: Exception) {
-            println("Failed to read second data: ${e.message}")
-            throw e
-        }
-
-        try {
-            emit("I should fail...")
-            println("Second sent!")
-        } catch (e: Exception) {
-            println("Failed to send second data: ${e.message}")
-            throw e
+            println("Collector error: ${e.message}")
         }
     }
 }
